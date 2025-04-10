@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body>
+    <div id="clock">00:00:00</div>
+
+    <h2 id="temperature">0°c</h2>
+    <div>
+        <canvas id="myChart"></canvas>
+    </div>
+    <script src="{{ url_for('static', filename='chart.js') }}"></script>
+    <script>
+        let secondLapsed = null;
+
+        function loadChart(data, label){
+            const ctx = document.getElementById('myChart');
+
+            new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: label,
+                datasets: [{
+                label: 'Hourly Temperature Record',
+                data: data,
+                borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                y: {
+                    beginAtZero: true
+                }
+                }
+            }
+            });
+        }
+
+        function updateClock() {
+          const now = new Date();
+          const hours = String(now.getHours()).padStart(2, '0');
+          const minutes = String(now.getMinutes()).padStart(2, '0');
+          const seconds = String(now.getSeconds()).padStart(2, '0');
+          const timeString = `${hours}:${minutes}:${seconds}`;
+          document.getElementById('clock').textContent = timeString;
+
+          if(secondLapsed == null){
+            secondLapsed = parseInt(seconds);
+                fetch('/get_data')
+                .then(response => {
+                    if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json(); // Parse JSON response
+                })
+                .then(data => {
+                    if (data.temperature !== undefined) {
+
+                    // Optional: display in the HTML
+                        loadChart(data.Records.Reading.Temperatures, data.Records.Reading.Dates)
+                        document.getElementById('temperature').textContent = `${data.temperature}°C`;
+                        
+
+                    } else if (data.error) {
+                    console.error('Error from server:', data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                });
+          }
+          else{
+            secondLapsed+=1;
+            if(secondLapsed==60){
+                secondLapsed = 0;
+                fetch('/get_data')
+                    .then(response => {
+                        if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json(); // Parse JSON response
+                    })
+                    .then(data => {
+                        if (data.temperature !== undefined) {
+
+                        // Optional: display in the HTML
+                        loadChart(data.Records.Reading.Temperatures, data.Records.Reading.Dates)
+                        document.getElementById('temperature').textContent = `${data.temperature}°C`;
+                        } else if (data.error) {
+                        console.error('Error from server:', data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Fetch error:', error);
+                    });
+            }
+          }         
+        }
+
+
+
+    
+        setInterval(updateClock, 1000); // Update every second
+        updateClock(); // Initial call to show clock immediately
+      </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signup</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+</head>
+<body>
+    <form method="POST">
+        <h3>Signup</h3>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <p style="color: {% if category == 'success' %}green{% else %}red{% endif %};">
+                        {{ message }}
+                    </p>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        <div id="input-container">
+            <input type="text" name="username" placeholder="Enter a username">
+            <input type="password" name="password" placeholder="Enter a password">
+            <input type="password" name="password2" placeholder="Enter a password">
+        </div>
+        <button type="submit">Signup</button>
+        <a href="{{ url_for('home') }}">Go to login</a>
+    </form>
+</body>
+</html>
