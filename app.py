@@ -6,9 +6,12 @@ from datetime import datetime
 from flask import jsonify
 import hashlib
 
+from flask_cors import CORS
+
 import pytz
 
 app = Flask(__name__)
+CORS(app, origins=["http://127.0.0.1:5000"])
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/dhtweb'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -87,6 +90,40 @@ def main():
     else:
         return redirect(url_for('home'))
 
+@app.route('/proxy_get_info', methods=['GET'])
+def proxy_get_info():
+    try:
+        response = requests.get("http://10.0.0.1/get_info", timeout=5)
+        print(response.json())
+        return jsonify(response.json())
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/connect_wifi', methods=['POST'])
+def connect_wifi():
+    ssid = request.json.get('ssid')
+    password = request.json.get('password')
+
+    if not ssid or not password:
+        return jsonify({"error": "Missing 'ssid' or 'password'"}), 400
+
+    try:
+        # Send to ESP8266
+        esp_url = "http://10.0.0.1/connect_wifi"
+        params = {
+            "ssid": ssid,
+            "password": password
+        }
+
+        response = requests.get(esp_url, params=params, timeout=10)
+        
+        return jsonify({
+            "status_code": response.status_code,
+            "text": response.text
+        }), response.status_code
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/get_data')
 def get_data():
@@ -125,6 +162,10 @@ def get_data():
 
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/pair_device')
+def pair():
+    return render_template('pair.html')
 
 @app.route('/logout')
 def logout():

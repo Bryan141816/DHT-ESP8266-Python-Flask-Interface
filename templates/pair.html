@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sliding Step-by-Step</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f1f1f1;
+      margin: 0;
+    }
+
+    .container {
+      width: 400px;
+      overflow: hidden;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      background: white;
+    }
+
+    .steps-wrapper {
+      display: flex;
+      transition: transform 0.5s ease-in-out;
+      width: 400%;
+    }
+
+    .step {
+        width: 100%;
+        flex-grow: 1;
+        padding: 2rem;
+        overflow-wrap: break-word; /* Modern and correct */
+        white-space: normal;       /* Allow text to wrap */
+        gap: 5px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    input{
+        height: 30px;
+        width: 100%;
+    }
+    p{
+        width: 100%;
+        margin: 0;
+        font-weight: 600;
+    }
+    span{
+        margin: 0;
+        margin-top: 10px;
+    }
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      padding: 1rem;
+      background: #fff;
+      border-top: 1px solid #ddd;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="steps-wrapper" id="stepsWrapper">
+      <div class="step">
+        <p>Step 1:</p>
+        Make sure that the device is blinking red and yellow.
+      </div>
+      <div class="step">
+        <p>Step 2:</p>
+        Connect to the device and wait for the yellow light to blink.
+        <span id="message"></span>
+        </div>
+      <div class="step">
+        <p>Step 3:</p>
+        <input type="text" placeholder="Enter your WIFI SSID:" id="wifi-ssid">
+        <input type="password" placeholder="Enter your WIFI password:" id="wifi-password">
+        <span id="message2">test</span>
+      </div>
+      <div class="step">Setup complete</div>
+    </div>
+    <div class="buttons">
+      <button id="prevBtn" disabled>Previous</button>
+      <button id="nextBtn">Next</button>
+    </div>
+  </div>
+
+  <script>
+    const stepsWrapper = document.getElementById("stepsWrapper");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+
+    let deviceMdns = "";
+
+    let currentStep = 0;
+    const totalSteps = document.querySelectorAll(".step").length;
+
+    function updateStep() {
+      stepsWrapper.style.transform = `translateX(-${currentStep * 25}%)`;
+      prevBtn.disabled = currentStep === 0;
+      nextBtn.disabled = currentStep === totalSteps - 1;
+    }
+
+    prevBtn.addEventListener("click", () => {
+      if (currentStep > 0) {
+        currentStep--;
+        updateStep();
+      }
+    });
+
+    async function fetchData(url) {
+      console.log('Start fetching...');
+
+      try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+          return false;
+        }
+
+        const data = await response.json(); // ✅ Parse JSON body here
+        return data;
+      } catch (error) {
+        console.error("Fetch error:", error); // Optional: for debugging
+        return false;
+      }
+    }
+    async function sendWiFiCredentials(ssid, password) {
+      const response = await fetch('/connect_wifi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ssid, password })
+      });
+
+      const result = await response.json();
+      console.log(result);
+    }
+
+    nextBtn.addEventListener("click", async() => {
+      switch(currentStep){
+        case 1:
+          const message = document.getElementById('message');
+          message.textContent = "Verifying Device";
+          const data = await fetchData('/proxy_get_info');
+          if(data){
+            deviceMdns = data.mdns;
+          }
+          else{
+            message.textContent = "Device Connection Failed Try Connecting again.";
+            return;
+          }
+          break;
+        case 2:
+          const message2 = document.getElementById('message2');
+          message2.textContent = "Connecting to Device";
+          const wifiSsid = document.getElementById('wifi-ssid').value;
+          const wifipass = document.getElementById('wifi-password').value;
+          console.log(wifiSsid)
+          const wifi = await sendWiFiCredentials(wifiSsid, wifipass);
+          if(wifi){
+            console.log(wifi)
+          }
+          else{
+            message2.textContent = "Failed to Connect";
+          }
+
+
+
+      }
+      if (currentStep < totalSteps - 1) {
+        currentStep++;
+        updateStep();
+      }
+    });
+
+    updateStep();
+  </script>
+</body>
+</html>

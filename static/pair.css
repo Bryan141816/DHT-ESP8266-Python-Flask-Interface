@@ -1,0 +1,30 @@
+*{
+    box-sizing: border-box;
+    margin: 0;
+}
+body{
+    display: flex;
+    height: 100dvh;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+}
+#container{
+    height: 90%;
+    width: 50%;
+    border: 1px solid rgb(43, 41, 41);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+}
+.content-container{
+    display: flex;
+    min-width: 100%;
+    flex-basis: auto;
+    flex-grow: 1;
+    height: 50%;
+    border: 1px solid red;
+}
