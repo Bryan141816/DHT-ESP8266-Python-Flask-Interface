@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>Settings</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 </head>
 <body>
@@ -12,18 +12,21 @@
     </header>
     <main>
         <nav>
-            <a href="#" class="active">Home</a>
+            <a href="{{ url_for('main') }}">Home</a>
             <a href="{{ url_for('show_readings') }}" >Records</a>
-            <a href="{{ url_for('settings') }}">Settings</a>
+            <a href="#"class="active">Settings</a>
         </nav>
         <div id="content">
-            <h2 id="temperature">Fetching Data</h2>
-            <div id="chart-container">
-                <canvas id="myChart"></canvas>
+            <div class="horizontal">
+                <span>Toggle LED</span>
+                <button onclick="toggleLed()" class="off" id="ledbutton">OFF</button>   
+            </div>
+            <div class="horizontal">
+                <span>Test Temperature Notification</span>
+                <button onclick="trigger_temp()" class="on" id="sendbutton">TEST</button>   
             </div>
         </div>
     </main>
-    <!-- <button onclick="toggleLed()" class="off" id="ledbutton">OFF</button>   -->
     <script src="{{ url_for('static', filename='chart.js') }}"></script>
     <script>
         let secondLapsed = null;
@@ -47,35 +50,97 @@
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false, // allow height control
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
                 }
             });
         }
-        let led_status = false;
-        function toggleLed(){
-            fetch(`/toggle_led/${led_status}`)
+        let led_status = sessionStorage.getItem('led_status') === 'true'; // Load saved state
+        let isToggling = false;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const button = document.getElementById('ledbutton');
+            if (led_status) {
+                button.textContent = "ON";
+                button.classList.remove('off');
+                button.classList.add('on');
+            } else {
+                button.textContent = "OFF";
+                button.classList.remove('on');
+                button.classList.add('off');
+            }
+        });
+        let isSending = false;
+        function trigger_temp(){
+            if(isSending) return;
+            isSending = true;
+
+            const button = document.getElementById('sendbutton');
+            button.disabled = true;
+            button.textContent = "Processing...";
+
+            fetch(`/trigger_temp`)
                 .then(response => {
                     if (response.ok) {
-                        const button = document.getElementById('ledbutton');
-                        if(!led_status){
-                            led_status = true;
-                            button.textContent = "ON";
-                            button.classList.remove('off');
-                            button.classList.add('on');
-                        }
-                        else{
-                            led_status = false;
-                            button.textContent = "OFF";
-                            button.classList.remove('on');
-                            button.classList.add('off');
-                        }
+                        button.textContent = "TEST"
+                        isSending = false;
+                        button.disabled = false;
                     }
-                })
-                .then(data => {
+                    else{
+                        button.textContent = "TEST"
+                        isSending = false;
+                        button.disabled = false;
+                    }
                 })
                 .catch(error => {
                     console.error('Fetch error:', error);
+                    button.textContent = "TEST"
+                })
+                .finally(() => {
+                    isSending = false;
+                    button.disabled = false;
+                });
+
+        }
+
+        function toggleLed() {
+            if (isToggling) return;
+
+            isToggling = true;
+
+            const button = document.getElementById('ledbutton');
+            button.disabled = true;
+            button.textContent = "Processing...";
+
+            fetch(`/toggle_led/${led_status}`)
+                .then(response => {
+                    if (response.ok) {
+                        led_status = !led_status;
+                        sessionStorage.setItem('led_status', led_status); // Save state
+
+                        if (led_status) {
+                            button.classList.remove('off');
+                            button.classList.add('on');
+                            button.textContent = "ON";
+                        } else {
+                            button.classList.remove('on');
+                            button.classList.add('off');
+                            button.textContent = "OFF";
+                        }
+                    } else {
+                        button.textContent = led_status ? "ON" : "OFF"; // Revert to last known state
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                    button.textContent = led_status ? "ON" : "OFF";
+                })
+                .finally(() => {
+                    isToggling = false;
+                    button.disabled = false;
                 });
         }
 
@@ -98,10 +163,6 @@
                 })
                 .then(data => {
                     if (data.temperature !== undefined) {
-
-                    // Optional: display in the HTML
-                        loadChart(data.Records.Reading.Temperatures, data.Records.Reading.Dates)
-                        document.getElementById('temperature').textContent = `${data.temperature}°C`;
                         
 
                     } else if (data.error) {
@@ -126,11 +187,6 @@
                     .then(data => {
                         if (data.temperature !== undefined) {
 
-                        // Optional: display in the HTML
-                        loadChart(data.Records.Reading.Temperatures, data.Records.Reading.Dates)
-                        document.getElementById('temperature').textContent = `${data.temperature}°C`;
-                        } else if (data.error) {
-                        console.error('Error from server:', data.error);
                         }
                     })
                     .catch(error => {

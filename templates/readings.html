@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>Records</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 </head>
 <body>
@@ -12,15 +12,27 @@
     </header>
     <main>
         <nav>
-            <a href="#" class="active">Home</a>
-            <a href="{{ url_for('show_readings') }}" >Records</a>
+            <a href="{{ url_for('main') }}">Home</a>
+            <a href="#" class="active">Records</a>
             <a href="{{ url_for('settings') }}">Settings</a>
         </nav>
         <div id="content">
-            <h2 id="temperature">Fetching Data</h2>
-            <div id="chart-container">
-                <canvas id="myChart"></canvas>
-            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Temperature (°C)</th>
+                        <th>Recorded At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reading in readings %}
+                        <tr>
+                            <td>{{ reading.temperature }} °c</td>
+                            <td>{{ reading.recorded_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </main>
     <!-- <button onclick="toggleLed()" class="off" id="ledbutton">OFF</button>   -->
@@ -47,8 +59,11 @@
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false, // allow height control
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
                 }
             });
         }
@@ -98,10 +113,6 @@
                 })
                 .then(data => {
                     if (data.temperature !== undefined) {
-
-                    // Optional: display in the HTML
-                        loadChart(data.Records.Reading.Temperatures, data.Records.Reading.Dates)
-                        document.getElementById('temperature').textContent = `${data.temperature}°C`;
                         
 
                     } else if (data.error) {
@@ -126,11 +137,6 @@
                     .then(data => {
                         if (data.temperature !== undefined) {
 
-                        // Optional: display in the HTML
-                        loadChart(data.Records.Reading.Temperatures, data.Records.Reading.Dates)
-                        document.getElementById('temperature').textContent = `${data.temperature}°C`;
-                        } else if (data.error) {
-                        console.error('Error from server:', data.error);
                         }
                     })
                     .catch(error => {

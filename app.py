@@ -49,7 +49,6 @@ def home():
         user = User.query.filter_by(username=input_username).first()
 
         if user and user.password == hasher(input_password):
-            flash('Login successful!', 'success')
             session['logState'] = True  # Store login state in session
             return redirect(url_for('main'))
         else:
@@ -90,7 +89,7 @@ def main():
 
 @app.route('/get_data')
 def get_data():
-    esp_ip = "http://192.168.1.14/data"  # Replace with ESP8266's IP
+    esp_ip = "http://temperature01.local/data"  # Replace with ESP8266's IP
     try:
         response = requests.get(esp_ip)
 
@@ -125,6 +124,44 @@ def get_data():
 
     except requests.exceptions.RequestException as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/toggle_led/<state>')
+def toggle_led(state):
+    esp_ip = f"http://temperature01.local/toggle_led?state={state}"  # Replace with ESP8266's IP
+    
+    try:
+        response = requests.get(esp_ip)
+
+        if response.status_code == 200:
+            return jsonify({"success": "Toggled Led"}), 200
+        else:
+            return jsonify({"error": "Unable to connect"}), 500
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/trigger_temp', methods=['GET'])
+def trigger_temp_send():
+    try:
+        response = requests.get(f"http://temperature01.local/send_temp")
+        return jsonify({
+            "status": "success",
+            "esp_response": response.json()
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
+
+    
+@app.route('/records')
+def show_readings():
+    readings = Readings.query.order_by(Readings.recorded_at.desc()).all()
+    return render_template('readings.html', readings=readings)
+@app.route('/settings')
+def settings():
+    return render_template('settings.html')
 
 @app.route('/logout')
 def logout():
